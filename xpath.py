@@ -4,31 +4,38 @@ import re
 
 
 def buildPath(view, selection):
-    path = ['']
-    lines = []
-
-    region = sublime.Region(0, selection.end())
-    for line in view.lines(region):
-        contents = view.substr(line)
-        lines.append(contents)
-
-    level = -1
-    spaces = re.compile('^\s+')
-    for line in lines:
-        space = spaces.findall(line)
-        current = len(space[0]) if len(space) else 0
-        node = re.sub(r'\s*<\??([\w\-.]+)(\s.*)?>.*', r'\1', line)
-        if current == level:
-            path.pop()
-            path.append(node)
-        elif current > level:
-            path.append(node)
-            level = current
-        elif current < level:
-            path.pop()
-            level = current
-
-    return path
+  """
+  Walks through XMl file from first line to end of given selection
+  and assembles xpath expression along the way.
+  """
+  path = ['']
+  lines = []
+  # region spans from beginning of document to end of selection
+  region = sublime.Region(0, selection.end())
+  # copy lines in region
+  for line in view.lines(region):
+      contents = view.substr(line)
+      lines.append(contents)
+  # lvl of indentation
+  level = -1
+  spaces = re.compile('^\s+')
+  for line in lines:
+      space = spaces.findall(line)
+      current = len(space[0]) if len(space) else 0
+      # extract node name from element
+      node = re.sub(r'\s*<\??([\w\-.]+)(\s.*)?>.*', r'\1', line)
+      # this is why xml has to have proper indentation for this to work
+      if current == level:
+          path.pop()
+          path.append(node)
+      elif current > level:
+          path.append(node)
+          level = current
+      elif current < level:
+          path.pop()
+          level = current
+  # done
+  return path
 
 
 def updateStatus(view):
@@ -38,11 +45,13 @@ def updateStatus(view):
 
 
 def isXML(view):
-    ext = re.sub(
-        r'.*\.(\w+)$',
-        r'\1',
-        view.file_name()
-    )
+    ext = ''
+    if view.file_name():
+      ext = re.sub(
+          r'.*\.(\w+)$',
+          r'\1',
+          view.file_name()
+      )
     return ext == 'xml'
 
 
